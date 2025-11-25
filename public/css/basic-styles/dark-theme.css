@@ -1,0 +1,161 @@
+/* --- P R E M I U M   D A R K   T H E M E --- */
+
+:root.dark-mode {
+  /* Основные цвета */
+  --bg: #0f172a;
+  --card-bg: #111a30;
+  --text: #e2e8f0;
+  --input-bg: #1e293b;
+  --border: #334155;
+  --primary: #38bdf8;
+  --primary-light: #0c4a6e;
+  --glass-bg: rgba(25, 39, 70, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: var(--text);
+}
+
+/* === Переопределение компонентов в тёмной теме === */
+
+/* Карточки, модалки, таблицы */
+body.dark-mode .glass-card,
+body.dark-mode .modern-table,
+body.dark-mode .table-container,
+body.dark-mode .sidebar,
+body.dark-mode .modal-content,
+body.dark-mode .toolbar,
+body.dark-mode .legend-container,
+body.dark-mode .settings-table,
+body.dark-mode .schedule-table,
+body.dark-mode .payroll-card {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+  color: var(--text);
+}
+
+/* Вкладки */
+body.dark-mode .tab-button {
+  color: var(--text);
+}
+
+body.dark-mode .tab-button.active {
+  background: var(--primary);
+  color: white;
+}
+
+/* Поля ввода */
+body.dark-mode .form-container input,
+body.dark-mode .form-container select,
+body.dark-mode .form-container textarea {
+  background: var(--input-bg);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+body.dark-mode .form-container input:focus,
+body.dark-mode .form-container select:focus,
+body.dark-mode .form-container textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.3);
+}
+
+/* Кнопки */
+body.dark-mode .btn-primary {
+  background: linear-gradient(45deg, #0ea5e9, #0284c7);
+}
+
+body.dark-mode .btn-success {
+  background: linear-gradient(45deg, #10b981, #059669);
+}
+
+body.dark-mode .btn-secondary {
+  background: linear-gradient(45deg, #a855f7, #7c3aed);
+}
+
+body.dark-mode .btn-danger {
+  background: linear-gradient(45deg, #f87171, #dc2626);
+}
+
+body.dark-mode .btn-warning {
+  background: linear-gradient(45deg, #f59e0b, #d97706);
+}
+
+/* Селекты, инпуты */
+body.dark-mode .select-sm,
+body.dark-mode .input-sm,
+body.dark-mode .search-input,
+body.dark-mode .filter-select {
+  background: var(--input-bg);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* Шаблоны смен */
+body.dark-mode .btn-template {
+  background: rgba(56, 189, 248, 0.15);
+  color: #bae6fd;
+}
+
+body.dark-mode .btn-template:hover,
+body.dark-mode .btn-template.active {
+  background: rgba(56, 189, 248, 0.25);
+}
+
+/* Смены в таблице */
+body.dark-mode [data-shift="10ч"] { background: rgba(56, 189, 248, 0.2); color: #bae6fd; }
+body.dark-mode [data-shift="14ч"] { background: rgba(56, 189, 248, 0.3); color: #7dd3fc; }
+body.dark-mode [data-shift="Б"]    { background: rgba(251, 191, 36, 0.2); color: #fde047; }
+body.dark-mode [data-shift="ОТ"]  { background: rgba(34, 197, 94, 0.2); color: #6ee7b7; }
+body.dark-mode [data-shift="off"] { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+
+/* Выходные */
+body.dark-mode .weekend { background: rgba(251, 113, 0, 0.1); color: #fb7116; }
+
+/* Важно: Отпуск имеет приоритет */
+body.dark-mode td.vacation-locked,
+body.dark-mode td[data-shift="ОТ"] {
+  background: rgba(34, 197, 94, 0.3) !important;
+  color: #6ee7b7 !important;
+}
+
+/* Заголовки таблиц */
+body.dark-mode .schedule-table th,
+body.dark-mode .schedule-table thead th {
+  background: rgba(56, 189, 248, 0.1);
+  color: #38bdf8;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Фиксированные колонки */
+body.dark-mode .schedule-table th:first-child,
+body.dark-mode .schedule-table td.letter-cell {
+  background: rgba(56, 189, 248, 0.12);
+}
+
+body.dark-mode .schedule-table th:nth-child(2),
+body.dark-mode .schedule-table td:nth-child(2) {
+  background: rgba(56, 189, 248, 0.08);
+}
+
+/* Подсказки */
+body.dark-mode .tooltip {
+  background: rgba(0, 0, 0, 0.9);
+}
+
+/* Тень для карточек и модалок */
+body.dark-mode .glass-card,
+body.dark-mode .modal-content {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .modal-content .close {
+  color: #94a3b8;
+}
+
+body.dark-mode .modal-content .close:hover {
+  color: var(--primary);
+}

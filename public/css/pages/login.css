@@ -1,0 +1,198 @@
+/* public/css/pages/login.css */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body.login-page {
+  font-family: var(--font);
+  background: linear-gradient(135deg, #f8f9fd 0%, #e9ecef 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+}
+
+.login-container {
+  max-width: 350px;
+  background: linear-gradient(0deg, #ffffff, #f4f7fb);
+  border-radius: 40px;
+  padding: 25px 35px;
+  border: 5px solid #ffffff;
+  box-shadow: rgba(133, 189, 215, 0.87) 0px 30px 30px -20px;
+  margin: 20px;
+  position: relative;
+  transition: background 0.3s ease;
+}
+
+.heading {
+  text-align: center;
+  font-weight: 900;
+  font-size: 30px;
+  color: var(--primary);
+  margin-bottom: 20px;
+}
+
+form {
+  margin-top: 20px;
+}
+
+form .input {
+  width: 100%;
+  background: white;
+  border: none;
+  padding: 15px 20px;
+  border-radius: 20px;
+  margin-top: 15px;
+  box-shadow: #cff0ff 0px 10px 10px -5px;
+  border-inline: 2px solid transparent;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+form .input:focus {
+  outline: none;
+  border-inline: 2px solid var(--primary);
+  box-shadow: #a0e7ff 0px 12px 12px -6px;
+}
+
+form .input::placeholder {
+  color: #aaa;
+}
+
+.forgot-password {
+  display: block;
+  margin-top: 10px;
+  margin-left: 10px;
+}
+
+.forgot-password a {
+  font-size: 11px;
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.login-button {
+  display: block;
+  width: 100%;
+  font-weight: bold;
+  background: linear-gradient(45deg, #1089d3, #12b1d1);
+  color: white;
+  padding-block: 15px;
+  margin: 20px auto;
+  border-radius: 20px;
+  box-shadow: rgba(133, 189, 215, 0.87) 0px 20px 10px -15px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  font-size: 1rem;
+}
+
+.login-button:hover {
+  transform: scale(1.03);
+  box-shadow: rgba(133, 189, 215, 0.87) 0px 23px 10px -20px;
+}
+
+.login-button:active {
+  transform: scale(0.95);
+  box-shadow: rgba(133, 189, 215, 0.87) 0px 15px 10px -10px;
+}
+
+/* === СОЦИАЛЬНЫЕ СЕТИ === */
+.social-account-container {
+  margin-top: 25px;
+  text-align: center;
+}
+
+.social-account-container .title {
+  display: block;
+  font-size: 10px;
+  color: #aaa;
+  margin-bottom: 10px;
+}
+
+.social-account-container .social-accounts {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.social-button {
+  background: linear-gradient(45deg, #000000, #707070);
+  border: 5px solid white;
+  padding: 5px;
+  border-radius: 50%;
+  width: 40px;
+  aspect-ratio: 1;
+  display: grid;
+  place-content: center;
+  box-shadow: rgba(133, 189, 215, 0.87) 0px 12px 10px -8px;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+.social-button .svg {
+  fill: white;
+  width: 18px;
+  height: 18px;
+}
+
+.social-button:hover {
+  transform: scale(1.2);
+}
+
+.social-button:active {
+  transform: scale(0.9);
+}
+
+/* === ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ === */
+.agreement {
+  display: block;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.agreement a {
+  text-decoration: none;
+  color: var(--primary);
+  font-size: 9px;
+}
+
+/* === ТЁМНАЯ ТЕМА === */
+body.dark-mode {
+  --bg-gradient-start: #121212;
+  --bg-gradient-end: #1e1e1e;
+  --card-bg: #1e1e1e;
+  --text-color: #e0e0e0;
+  --input-bg: #2d2d2d;
+  --border-color: #333;
+  --shadow: rgba(0, 0, 0, 0.5) 0px 30px 30px -20px;
+}
+
+body.dark-mode,
+body.dark-mode .login-page {
+  background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+  color: var(--text-color);
+}
+
+body.dark-mode .login-container {
+  background: var(--card-bg);
+  box-shadow: var(--shadow);
+  color: var(--text-color);
+}
+
+body.dark-mode .input {
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+
+body.dark-mode .heading,
+body.dark-mode .forgot-password a,
+body.dark-mode .agreement a,
+body.dark-mode .title {
+  color: #bbdefb;
+}

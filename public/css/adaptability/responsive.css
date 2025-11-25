@@ -1,0 +1,85 @@
+/* public/css/adaptability/responsive.css */
+
+@media (max-width: 480px) {
+  .login-container {
+    padding: 20px;
+    border-radius: 30px;
+    max-width: 300px;
+  }
+
+  .login-container h1,
+  .heading {
+    font-size: 1.5rem;
+  }
+
+  form .input,
+  .login-button {
+    padding: 12px 18px;
+    font-size: 0.95rem;
+  }
+
+  .social-button {
+    width: 36px;
+    padding: 4px;
+    border: 4px solid white;
+  }
+
+  .social-button .svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .forgot-password,
+  .agreement {
+    margin-left: 0;
+    font-size: 0.9rem;
+  }
+
+  .agreement a {
+    font-size: 0.8rem;
+  }
+}
+
+/* === ТАБЛЕТЫ И МАЛЕНЬКИЕ ДЕСКТОПЫ === */
+@media (min-width: 481px) and (max-width: 768px) {
+  .login-container {
+    max-width: 400px;
+    padding: 30px 40px;
+  }
+
+  .heading {
+    font-size: 2.2rem;
+  }
+
+  form .input {
+    font-size: 1rem;
+  }
+}
+
+/* === Общая адаптация для всех страниц — если используется login как часть системы */
+@media (max-width: 768px) {
+  .main-wrapper {
+    padding: 15px;
+  }
+
+  .dashboard-grid,
+  .filters,
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn,
+  .btn-primary,
+  .btn-success,
+  .login-button {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .modal-content {
+    max-width: 95%;
+    padding: 20px;
+  }
+}
