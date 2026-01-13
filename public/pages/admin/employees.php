@@ -52,6 +52,14 @@ require_once __DIR__ . '/../shared/header.php';
           <option value="<?= $code ?>"><?= htmlspecialchars($title) ?></option>
         <?php endforeach; ?>
       </select>
+      <select id="blockFilter" class="filter-select">
+        <option value="">Все блоки</option>
+        <option value="1">1 блок</option>
+        <option value="1-2">1-2 блок</option>
+        <option value="2">2 блок</option>
+        <option value="2-3">2-3 блок</option>
+        <option value="3">3 блок</option>
+      </select>
     </div>
 
     <!-- Сообщение -->
@@ -67,6 +75,7 @@ require_once __DIR__ . '/../shared/header.php';
             <th>Телефон</th>
             <th>Должность</th>
             <th>Отдел</th>
+            <th>Блок</th>
             <th>Дата найма</th>
             <th>Стаж</th>
             <th>Роль</th>
@@ -123,6 +132,11 @@ require_once __DIR__ . '/../shared/header.php';
         <option value="floor_2">2 этаж</option>
       </select>
 
+      <label for="block" id="blockLabel">Блок</label>
+      <select id="block">
+        <option value="">Не указан</option>
+      </select>
+
       <label for="hire_date">Дата найма</label>
       <input type="date" id="hire_date" />
 
@@ -139,3 +153,111 @@ require_once __DIR__ . '/../shared/header.php';
 </div>
 
 <?php require_once __DIR__ . '/../shared/footer.php'; ?>
+
+<!-- Скрипт: динамическое обновление блоков и скрытие для сиделки/ванщицы -->
+<script>
+  // Доступные блоки по этажам
+  const blocksByFloor = {
+    'floor_1': [
+      { value: '1', label: '1 блок' },
+      { value: '1-2', label: '1-2 блок' },
+      { value: '2', label: '2 блок' },
+      { value: '2-3', label: '2-3 блок' },
+      { value: '3', label: '3 блок' }
+    ],
+    'floor_2': [
+      { value: '1', label: '1 блок' },
+      { value: '2', label: '2 блок' },
+      { value: '3', label: '3 блок' }
+    ]
+  };
+
+  // Должности, у которых нет блока
+  const noBlockPositions = ['sidelka', 'vanshiza'];
+
+  // Функция обновления списка блоков
+  function updateBlockOptions() {
+    const blockSelect = document.getElementById('block');
+    const floor = document.getElementById('department').value;
+
+    blockSelect.innerHTML = '<option value="">Не указан</option>';
+
+    if (blocksByFloor[floor]) {
+      blocksByFloor[floor].forEach(block => {
+        const option = document.createElement('option');
+        option.value = block.value;
+        option.textContent = block.label;
+        blockSelect.appendChild(option);
+      });
+    }
+  }
+
+  // Функция показа/скрытия блока в зависимости от должности
+  function updateBlockVisibility() {
+    const position = document.getElementById('position').value;
+    const blockLabel = document.getElementById('blockLabel');
+    const blockSelect = document.getElementById('block');
+
+    if (noBlockPositions.includes(position)) {
+      blockSelect.value = '';
+      blockLabel.style.opacity = '0.5';
+      blockSelect.disabled = true;
+    } else {
+      blockLabel.style.opacity = '1';
+      blockSelect.disabled = false;
+    }
+  }
+
+  // Обработчики событий
+
+  // При смене этажа — обновить блоки
+  document.getElementById('department').addEventListener('change', updateBlockOptions);
+
+  // При смене должности — скрыть/показать блок
+  document.getElementById('position').addEventListener('change', updateBlockVisibility);
+
+  // При открытии модального окна — обновить отображение
+  function refreshForm() {
+    updateBlockOptions();
+    updateBlockVisibility();
+  }
+
+  // Кнопка "Добавить"
+  document.getElementById('addEmployeeBtn').addEventListener('click', () => {
+    document.getElementById('employeeForm').reset();
+    document.getElementById('employeeId').value = '';
+    document.getElementById('password').required = true;
+    refreshForm();
+  });
+
+  // При редактировании — после загрузки данных
+  // (вызывается в employees.js после установки position)
+  // Добавим глобальную функцию
+  window.refreshForm = refreshForm;
+
+  // Инициализация при загрузке
+  document.addEventListener('DOMContentLoaded', () => {
+    const department = document.getElementById('department');
+    if (department.value) {
+      department.dispatchEvent(new Event('change'));
+    }
+    updateBlockVisibility();
+  });
+
+  // Закрытие модального окна
+  document.querySelector('.close')?.addEventListener('click', () => {
+    document.getElementById('employeeModal').style.display = 'none';
+  });
+
+  window.addEventListener('click', (e) => {
+    const modal = document.getElementById('employeeModal');
+    if (e.target === modal) {
+      modal.style.display = 'none';
+    }
+  });
+
+  // Кнопка "Отмена"
+  document.getElementById('cancelBtn')?.addEventListener('click', () => {
+    document.getElementById('employeeModal').style.display = 'none';
+  });
+</script>

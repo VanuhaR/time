@@ -1,20 +1,17 @@
-// public/js/schedule-v2.js
+// public/js/schedule-v2.js (полностью рабочая версия с группировкой по блокам для 1 и 2 этажа)
 
 (function () {
   'use strict';
 
-  // === Защита от двойной загрузки ===
   if (window.__SCHEDULE_V2_LOADED) {
     console.warn('⚠️ schedule-v2.js уже загружен — пропуск');
     return;
   }
   window.__SCHEDULE_V2_LOADED = true;
 
-  // === Устанавливаем CAN_EDIT до всего остального ===
   window.CAN_EDIT = typeof CAN_EDIT !== 'undefined' ? !!CAN_EDIT : false;
   console.log('🔧 [INIT] CAN_EDIT установлен как:', window.CAN_EDIT);
 
-  // === Глобальные константы API ===
   if (typeof window.API_URL === 'undefined') {
     window.API_URL = '/public/api/schedule.php';
     window.POSITIONS_API = '/public/api/positions.php';
@@ -23,26 +20,22 @@
     window.VACATION_API = '/public/api/vacation.php';
   }
 
-  // === Переменные ===
   let currentMonth = new Date();
   let selectedShift = '10ч';
   let activeTemplate = null;
   let positionTitles = {};
   let vacationMap = {};
 
-  // Drag-n-drop обработчики
   let dragOverHandler = null;
   let dropHandler = null;
 
-  // === Константы ===
   const SHIFT_HOURS = { '10ч': 10, '14ч': 14 };
   const ORDER_KEY = 'schedule_order_v2';
   const TEMPLATES = {
-    pattern1: ['10ч', '14ч', '', '', ''], // 2 через 3
-    pattern2: ['10ч', '10ч', '', '']     // 2 через 2
+    pattern1: ['10ч', '14ч', '', '', ''],
+    pattern2: ['10ч', '10ч', '', '']
   };
 
-  // === Утилиты ===
   function getDaysInMonth(date) {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   }
@@ -56,7 +49,6 @@
     return d.getDay() === 0 || d.getDay() === 6;
   }
 
-  // === Drag-n-Drop вспомогательные функции ===
   function getDragAfterElement(container, y) {
     const els = [...container.querySelectorAll('tr:not(.group-header):not(.dragging)')];
     return els.reduce((closest, child) => {
@@ -77,7 +69,6 @@
     return null;
   }
 
-  // === Работа с порядком сотрудников (localStorage) ===
   function saveEmployeeOrder(groupTitle, ids) {
     if (!window.CAN_EDIT) return;
     const key = `${ORDER_KEY}_${currentMonth.getFullYear()}-${currentMonth.getMonth()}`;
@@ -92,7 +83,6 @@
     return saved[groupTitle] || null;
   }
 
-  // === Уведомления ===
   function showToast(message, type = 'info') {
     let toast = document.getElementById('toast');
     if (!toast) {
@@ -137,7 +127,6 @@
     }
   }
 
-  // === Загрузка данных ===
   async function loadPositions() {
     try {
       const res = await fetch(window.POSITIONS_API);
@@ -227,7 +216,6 @@
     }
   }
 
-  // === Норма часов ===
   async function getNormForMonth(year, month, gender) {
     try {
       const genderKey = gender === 'female' ? 'female' : 'male';
@@ -241,7 +229,6 @@
     }
   }
 
-  // === Обновление итоговых часов ===
   async function updateTotal(empId) {
     const row = document.querySelector(`tr[data-emp-id="${empId}"]`);
     if (!row) return;
@@ -276,7 +263,6 @@
     }
   }
 
-  // === Сохранение смены ===
   async function saveShift(empId, date, shift) {
     if (!window.CAN_EDIT) return;
 
@@ -309,7 +295,6 @@
     }
   }
 
-  // === Применение шаблона (вперёд и назад, пропускает ОТ) ===
   function applyTemplateToEmployee(empId, clickedDate) {
     if (!window.CAN_EDIT) return;
     const row = document.querySelector(`tr[data-emp-id="${empId}"]`);
@@ -325,7 +310,6 @@
 
     const updates = [];
 
-    // 1. Вперёд
     let patternIndex = 0;
     for (let i = clickedIndex; i < cells.length; i++) {
       const cell = cells[i];
@@ -342,7 +326,6 @@
       patternIndex++;
     }
 
-    // 2. Назад
     patternIndex = (pattern.length - 1) % pattern.length;
     for (let i = clickedIndex - 1; i >= 0; i--) {
       const cell = cells[i];
@@ -362,12 +345,10 @@
     updates.forEach(u => saveShift(u.empId, u.date, u.shiftType));
   }
 
-  // === Настройка обработчиков ячеек ===
   function setupCellListeners() {
     console.log('🔧 setupCellListeners: начало');
 
     document.querySelectorAll('td[data-emp][data-date]').forEach(cell => {
-      // Всегда клонируем — чтобы сбросить старые обработчики
       const newCell = cell.cloneNode(true);
       cell.replaceWith(newCell);
 
@@ -378,12 +359,9 @@
       }
 
       newCell.addEventListener('click', function () {
-        console.log('🖱️ Клик по ячейке:', this.dataset.emp, this.dataset.date);
-
         const empId = this.dataset.emp;
         const date = this.dataset.date;
 
-        // 🔒 Запрещаем вручную ставить смену на ОТ
         if (this.dataset.vacation === 'true' && !activeTemplate) {
           showToast('Нельзя менять отпуск вручную', 'warning');
           return;
@@ -420,7 +398,6 @@
       }
     });
 
-    // Drag-n-drop
     if (!window.CAN_EDIT) {
       document.querySelectorAll('tr[data-emp-id]').forEach(row => {
         row.removeAttribute('draggable');
@@ -441,7 +418,6 @@
     console.log('✅ setupCellListeners: завершён');
   }
 
-  // === Drag-n-Drop для строк ===
   function setupDragListeners(row) {
     if (!window.CAN_EDIT) return;
     row.setAttribute('draggable', true);
@@ -449,7 +425,6 @@
     row.addEventListener('dragend', () => row.classList.remove('dragging'));
   }
 
-  // === Очистка графика (без отпусков) ===
   function clearSchedule() {
     if (!window.CAN_EDIT) return;
     if (!confirm('Очистить график? Отпуска не будут удалены.')) return;
@@ -484,7 +459,6 @@
       });
   }
 
-  // === Основной рендеринг таблицы ===
   async function renderSchedule() {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
@@ -506,7 +480,6 @@
       thead.innerHTML = '';
       tbody.innerHTML = '';
 
-      // Заголовок таблицы
       const headerRow = document.createElement('tr');
       headerRow.innerHTML = '<th style="width: 50px;">Буква</th><th style="width: 200px;">Сотрудник</th>';
       for (let d = 1; d <= days; d++) {
@@ -522,40 +495,55 @@
       `;
       thead.appendChild(headerRow);
 
-      // Норма
       const norm = await getNormForMonth(year, month + 1, 'male');
       const normEl = document.getElementById('monthlyNorm');
       if (normEl) normEl.textContent = norm;
 
-      // Группы
       const floors = ['floor_1', 'floor_2'];
       const positions = Object.keys(positionTitles);
-      const groups = groupFilter === 'all'
-        ? positions.flatMap(pos => floors.map(floor => ({
+
+      let groups = [];
+
+      if (groupFilter === 'all') {
+        groups = positions.flatMap(pos =>
+          floors.map(floor => ({
             t: `${positionTitles[pos]} ${floor === 'floor_1' ? '1 этажа' : '2 этажа'}`,
             f: e => e.position_code === pos && e.department === floor
-          })))
-        : {
-            cleaners: [
-              { t: 'Санитары 1 этажа', f: e => e.position_code === 'sanitar' && (e.department === 'floor_1' || !e.department) },
-              { t: 'Санитары 2 этажа', f: e => e.position_code === 'sanitar' && e.department === 'floor_2' },
-              { t: 'Ассистенты', f: e => e.position_code === 'assistant' }
-            ],
-            floor1_staff: [
-              { t: 'Санитарки 1 этажа', f: e => e.position_code === 'sanitarka' && (e.department === 'floor_1' || !e.department) },
-              { t: 'Сиделки 1 этажа', f: e => e.position_code === 'sidelka' && e.department === 'floor_1' },
-              { t: 'Ванщицы 1 этажа', f: e => e.position_code === 'vanshiza' && e.department === 'floor_1' }
-            ],
-            floor2_staff: [
-              { t: 'Санитарки 2 этажа', f: e => e.position_code === 'sanitarka' && e.department === 'floor_2' },
-              { t: 'Сиделки 2 этажа', f: e => e.position_code === 'sidelka' && e.department === 'floor_2' },
-              { t: 'Ванщицы 2 этажа', f: e => e.position_code === 'vanshiza' && e.department === 'floor_2' }
-            ],
-            nurses: [
-              { t: 'Медсёстры', f: e => e.position_code === 'nurse' },
-              { t: 'Старшая медсестра', f: e => e.position_code === 'senior_nurse' }
-            ]
-          }[groupFilter] || [];
+          }))
+        );
+      } else {
+        groups = {
+          cleaners: [
+            { t: 'Санитары 1 этажа', f: e => e.position_code === 'sanitar' && (e.department === 'floor_1' || !e.department) },
+            { t: 'Санитары 2 этажа', f: e => e.position_code === 'sanitar' && e.department === 'floor_2' },
+            { t: 'Ассистенты', f: e => e.position_code === 'assistant' }
+          ],
+          floor1_staff: [
+            { t: 'Санитарки 1-1 блока', f: e => e.position_code === 'sanitarka' && e.department === 'floor_1' && e.block === '1' },
+            { t: 'Санитарки 1-1-2 блока', f: e => e.position_code === 'sanitarka' && e.department === 'floor_1' && e.block === '1-2' },
+            { t: 'Санитарки 1-2 блока', f: e => e.position_code === 'sanitarka' && e.department === 'floor_1' && e.block === '2' },
+            { t: 'Санитарки 1-2-3 блока', f: e => e.position_code === 'sanitarka' && e.department === 'floor_1' && e.block === '2-3' },
+            { t: 'Санитарки 1-3 блока', f: e => e.position_code === 'sanitarka' && e.department === 'floor_1' && e.block === '3' },
+            { t: 'Санитарки 1 этажа (без блока)', f: e => e.position_code === 'sanitarka' && e.department === 'floor_1' && !e.block },
+            { t: 'Сиделки 1 этажа', f: e => e.position_code === 'sidelka' && e.department === 'floor_1' },
+            { t: 'Ванщицы 1 этажа', f: e => e.position_code === 'vanshiza' && e.department === 'floor_1' }
+          ],
+          floor2_staff: [
+            { t: 'Санитарки 2-1 блока', f: e => e.position_code === 'sanitarka' && e.department === 'floor_2' && e.block === '1' },
+            { t: 'Санитарки 2-1-2 блока', f: e => e.position_code === 'sanitarka' && e.department === 'floor_2' && e.block === '1-2' },
+            { t: 'Санитарки 2-2 блока', f: e => e.position_code === 'sanitarka' && e.department === 'floor_2' && e.block === '2' },
+            { t: 'Санитарки 2-2-3 блока', f: e => e.position_code === 'sanitarka' && e.department === 'floor_2' && e.block === '2-3' },
+            { t: 'Санитарки 2-3 блока', f: e => e.position_code === 'sanitarka' && e.department === 'floor_2' && e.block === '3' },
+            { t: 'Санитарки 2 этажа (без блока)', f: e => e.position_code === 'sanitarka' && e.department === 'floor_2' && !e.block },
+            { t: 'Сиделки 2 этажа', f: e => e.position_code === 'sidelka' && e.department === 'floor_2' },
+            { t: 'Ванщицы 2 этажа', f: e => e.position_code === 'vanshiza' && e.department === 'floor_2' }
+          ],
+          nurses: [
+            { t: 'Медсёстры', f: e => e.position_code === 'nurse' },
+            { t: 'Старшая медсестра', f: e => e.position_code === 'senior_nurse' }
+          ]
+        }[groupFilter] || [];
+      }
 
       let idx = 0;
       for (const group of groups) {
@@ -567,13 +555,11 @@
           emps.sort((a, b) => savedOrder.indexOf(a.id) - savedOrder.indexOf(b.id));
         }
 
-        // Заголовок группы
         const header = document.createElement('tr');
         header.className = 'group-header';
         header.innerHTML = `<td colspan="${2 + days + 2}">– ${group.t} –</td>`;
         tbody.appendChild(header);
 
-        // Строки сотрудников
         for (const emp of emps) {
           const letter = 'АБВГД'[idx++ % 5];
           let cells = `<td class="letter-cell">${letter}</td><td>${emp.full_name}</td>`;
@@ -600,13 +586,10 @@
           tbody.appendChild(row);
 
           if (window.CAN_EDIT) setupDragListeners(row);
-
-          const empId = emp.id;
-          updateTotal(empId);
+          updateTotal(emp.id);
         }
       }
 
-      // Обновление месяца
       const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
       document.getElementById('monthLabel').textContent = `${monthNames[month]} ${year}`;
 
@@ -618,7 +601,6 @@
     }
   }
 
-  // === Инициализация ===
   document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 DOMContentLoaded: старт');
     await loadPositions();
@@ -653,33 +635,29 @@
       tbody.addEventListener('drop', dropHandler);
     }
 
-    // === Кнопки смен и шаблонов ===
-    if (window.CAN_EDIT) {
-      document.querySelectorAll('.shift-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          selectedShift = btn.dataset.shift;
-          activeTemplate = null;
-          document.body.style.cursor = '';
-          document.querySelectorAll('.btn-template').forEach(b => b.classList.remove('active'));
-        });
+    document.querySelectorAll('.shift-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedShift = btn.dataset.shift;
+        activeTemplate = null;
+        document.body.style.cursor = '';
+        document.querySelectorAll('.btn-template').forEach(b => b.classList.remove('active'));
       });
+    });
 
-      document.querySelectorAll('.btn-template').forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.btn-template').forEach(b => b.classList.remove('active'));
-          document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('active'));
-          activeTemplate = activeTemplate === btn.dataset.template ? null : btn.dataset.template;
-          btn.classList.toggle('active', !!activeTemplate);
-          document.body.style.cursor = activeTemplate ? 'crosshair' : '';
-        });
+    document.querySelectorAll('.btn-template').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.btn-template').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('active'));
+        activeTemplate = activeTemplate === btn.dataset.template ? null : btn.dataset.template;
+        btn.classList.toggle('active', !!activeTemplate);
+        document.body.style.cursor = activeTemplate ? 'crosshair' : '';
       });
+    });
 
-      document.getElementById('clearSchedule')?.addEventListener('click', clearSchedule);
-    }
+    document.getElementById('clearSchedule')?.addEventListener('click', clearSchedule);
 
-    // === Печать ===
     document.getElementById('printSchedule')?.addEventListener('click', () => {
       const monthLabel = document.getElementById('monthLabel').textContent;
       const normText = document.getElementById('monthlyNorm').textContent || '0';
@@ -706,7 +684,6 @@
       w.focus();
     });
 
-    // === Навигация ===
     document.getElementById('prevMonth')?.addEventListener('click', () => {
       currentMonth.setMonth(currentMonth.getMonth() - 1);
       renderSchedule();

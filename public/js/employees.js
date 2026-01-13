@@ -25,9 +25,23 @@ function formatDepartment(dep) {
   return map[dep] || 'Не указан';
 }
 
+// --- Форматирование блока ---
+function formatBlock(block) {
+  const map = {
+    '1': '1 блок',
+    '1-2': '1-2 блок',
+    '2': '2 блок',
+    '2-3': '2-3 блок',
+    '3': '3 блок'
+  };
+  return map[block] || '–';
+}
+
 // --- Расчёт стажа ---
 function calculateExperience(startDate) {
-  if (!startDate) return '–';
+  if (!startDate || isNaN(new Date(startDate).getTime())) {
+    return '–';
+  }
   const start = new Date(startDate);
   const today = new Date();
   let years = today.getFullYear() - start.getFullYear();
@@ -50,11 +64,13 @@ function formatPhone(phone) {
 function applyFilters() {
   const query = document.getElementById('searchInput')?.value.trim().toLowerCase() || '';
   const position = document.getElementById('positionFilter')?.value || '';
+  const block = document.getElementById('blockFilter')?.value || '';
 
   filteredEmployees = allEmployees.filter(emp => {
     const matchesSearch = !query || emp.full_name.toLowerCase().includes(query);
     const matchesPos = !position || emp.position_code === position;
-    return matchesSearch && matchesPos;
+    const matchesBlock = !block || emp.block === block;
+    return matchesSearch && matchesPos && matchesBlock;
   });
 
   renderEmployeeList();
@@ -67,7 +83,7 @@ function renderEmployeeList() {
   tbody.innerHTML = '';
 
   filteredEmployees.forEach((emp, i) => {
-    const hireDate = emp.created_at ? emp.created_at.split(' ')[0] : '–';
+    const hireDate = [null, '', 'null', 'undefined'].includes(emp.hire_date) ? null : emp.hire_date;
     const exp = calculateExperience(hireDate);
     const gender = emp.gender === 'male' ? '🟥 Мужской' : emp.gender === 'female' ? '🟦 Женский' : '—';
 
@@ -78,7 +94,8 @@ function renderEmployeeList() {
       <td>${formatPhone(emp.phone)}</td>
       <td>${formatPosition(emp.position_code)}</td>
       <td>${formatDepartment(emp.department)}</td>
-      <td>${hireDate}</td>
+      <td>${formatBlock(emp.block)}</td>
+      <td>${hireDate || '–'}</td>
       <td>${exp}</td>
       <td>${emp.role}</td>
       <td>${gender}</td>
@@ -90,7 +107,7 @@ function renderEmployeeList() {
     tbody.appendChild(row);
   });
 
-  // Очистка и перепривязка обработчиков
+  // Перепривязка обработчиков
   document.querySelectorAll('.btn-edit').forEach(btn => {
     btn.removeEventListener('click', openEditModal);
     btn.addEventListener('click', openEditModal);
@@ -130,6 +147,8 @@ document.getElementById('addEmployeeBtn')?.addEventListener('click', () => {
   employeeForm.reset();
   document.getElementById('employeeId').value = '';
   document.getElementById('password').required = true;
+  updateBlockOptions();
+  updateBlockVisibility();
 });
 
 // Закрытие по крестику
@@ -143,6 +162,28 @@ window.addEventListener('click', (e) => {
     modal.style.display = 'none';
   }
 });
+
+// --- Обновление списка блоков в зависимости от этажа ---
+function updateBlockOptions() {
+  const department = document.getElementById('department').value;
+  const blockSelect = document.getElementById('block');
+  const options = {
+    'floor_1': ['1', '1-2', '2', '2-3', '3'],
+    'floor_2': ['1', '2', '3']
+  };
+
+  blockSelect.innerHTML = '<option value="">Не указан</option>';
+
+  if (options[department]) {
+    options[department].forEach(value => {
+      const label = formatBlock(value);
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = label;
+      blockSelect.appendChild(option);
+    });
+  }
+}
 
 // --- Открытие формы редактирования ---
 async function openEditModal(e) {
@@ -161,6 +202,13 @@ async function openEditModal(e) {
     document.getElementById('gender').value = emp.gender || '';
     document.getElementById('hire_date').value = emp.hire_date || '';
     document.getElementById('password').required = false;
+
+    updateBlockOptions();
+    updateBlockVisibility();
+    document.getElementById('block').value = emp.block || '';
+    if (['sidelka', 'vanshiza'].includes(emp.position_code)) {
+      document.getElementById('block').value = '';
+    }
 
     modalTitle.textContent = 'Редактировать сотрудника';
     modal.style.display = 'block';
@@ -214,11 +262,12 @@ employeeForm?.addEventListener('submit', async (e) => {
   const role = document.getElementById('role').value;
   const positionCode = document.getElementById('position').value;
   const department = document.getElementById('department').value;
+  const blockInput = document.getElementById('block');
+  const block = ['sidelka', 'vanshiza'].includes(positionCode) ? null : (blockInput.value || null);
   const gender = document.getElementById('gender').value;
   const hireDate = document.getElementById('hire_date').value;
   const password = document.getElementById('password').value;
 
-  // Валидация
   if (!fullName) {
     showMessage('ФИО обязательно для заполнения', 'error');
     return;
@@ -228,7 +277,6 @@ employeeForm?.addEventListener('submit', async (e) => {
     return;
   }
 
-  // Подготовка данных
   const data = {
     action: id ? 'update' : 'create',
     full_name: fullName,
@@ -236,12 +284,13 @@ employeeForm?.addEventListener('submit', async (e) => {
     role,
     position_code: positionCode,
     department,
+    block,
     gender
   };
 
   if (hireDate) data.hire_date = hireDate;
   if (password) data.password = password;
-  if (id) data.id = parseInt(id, 10); // Убедимся, что ID — число
+  if (id) data.id = parseInt(id, 10);
 
   try {
     const response = await fetch(API_URL, {
@@ -250,7 +299,6 @@ employeeForm?.addEventListener('submit', async (e) => {
       body: JSON.stringify(data)
     });
 
-    // Проверка HTTP-статуса
     if (!response.ok) {
       const text = await response.text();
       console.error('❌ HTTP ошибка:', response.status, text);
@@ -258,7 +306,6 @@ employeeForm?.addEventListener('submit', async (e) => {
       return;
     }
 
-    // Парсинг JSON с защитой
     let result;
     try {
       result = await response.json();
@@ -269,12 +316,11 @@ employeeForm?.addEventListener('submit', async (e) => {
       return;
     }
 
-    // Обработка результата
     if (result.success) {
       showMessage(id ? 'Сотрудник успешно обновлён' : 'Сотрудник добавлен');
-      modal.style.display = 'none'; // Закрываем окно
-      employeeForm.reset();         // Очищаем форму
-      loadEmployees();              // Обновляем список
+      modal.style.display = 'none';
+      employeeForm.reset();
+      loadEmployees();
     } else {
       showMessage('Ошибка: ' + (result.error || 'неизвестная'), 'error');
     }
@@ -293,7 +339,7 @@ document.getElementById('exportExcelBtn')?.addEventListener('click', () => {
 
   const wb = XLSX.utils.book_new();
   const wsData = [
-    ['ФИО', 'Телефон', 'Должность', 'Отдел', 'Роль', 'Дата найма', 'Пол']
+    ['ФИО', 'Телефон', 'Должность', 'Отдел', 'Блок', 'Роль', 'Дата найма', 'Пол']
   ];
 
   filteredEmployees.forEach(emp => {
@@ -302,8 +348,9 @@ document.getElementById('exportExcelBtn')?.addEventListener('click', () => {
       formatPhone(emp.phone),
       formatPosition(emp.position_code),
       formatDepartment(emp.department),
+      formatBlock(emp.block),
       emp.role,
-      emp.created_at ? emp.created_at.split(' ')[0] : '',
+      emp.hire_date || '',
       emp.gender === 'male' ? 'Мужской' : emp.gender === 'female' ? 'Женский' : ''
     ]);
   });
@@ -322,8 +369,8 @@ document.getElementById('downloadTemplateBtn')?.addEventListener('click', () => 
 
   const wb = XLSX.utils.book_new();
   const wsData = [
-    ['ФИО', 'Телефон', 'Должность', 'Отдел', 'Роль'],
-    ['Иванов Иван Иванович', '79991234567', 'nurse', 'floor_1', 'employee']
+    ['ФИО', 'Телефон', 'Должность', 'Отдел', 'Блок', 'Роль'],
+    ['Иванова Анна Петровна', '79991234567', 'sanitarka', 'floor_1', '1-2', 'employee']
   ];
   const ws = XLSX.utils.aoa_to_sheet(wsData);
   XLSX.utils.book_append_sheet(wb, ws, 'Шаблон');
@@ -356,6 +403,7 @@ document.getElementById('importExcel')?.addEventListener('change', async (e) => 
         'sanitar', 'sanitarka', 'sidelka', 'vanshiza',
         'assistant', 'nurse', 'senior_nurse', 'director'
       ];
+      const validBlocks = ['1', '1-2', '2', '2-3', '3'];
 
       for (let i = 0; i < json.length; i++) {
         const row = json[i];
@@ -363,6 +411,13 @@ document.getElementById('importExcel')?.addEventListener('change', async (e) => 
         const phoneRaw = String(row['Телефон'] || row['телефон'] || '').replace(/\D/g, '');
         const pos = String(row['Должность'] || row['должность'] || '').trim();
         const dep = String(row['Отдел'] || row['отдел'] || '').trim();
+        let blk = String(row['Блок'] || row['блок'] || '').trim();
+
+        // Блок не требуется для сиделки и ванщицы
+        if (['sidelka', 'vanshiza'].includes(pos)) {
+          blk = null;
+        }
+
         const role = String(row['Роль'] || row['роль'] || 'employee').trim().toLowerCase();
 
         if (!fio) {
@@ -373,7 +428,6 @@ document.getElementById('importExcel')?.addEventListener('change', async (e) => 
         if (phoneRaw.length === 11 && phoneRaw[0] === '8') {
           phoneRaw = '7' + phoneRaw.slice(1);
         }
-
         if (phoneRaw.length !== 11) {
           errors.push(`Строка ${i + 2}: некорректный телефон — ${phoneRaw}`);
           continue;
@@ -381,6 +435,11 @@ document.getElementById('importExcel')?.addEventListener('change', async (e) => 
 
         if (pos && !validPositions.includes(pos)) {
           errors.push(`Строка ${i + 2}: неизвестная должность — ${pos}`);
+          continue;
+        }
+
+        if (blk && !validBlocks.includes(blk)) {
+          errors.push(`Строка ${i + 2}: неизвестный блок — ${blk}`);
           continue;
         }
 
@@ -394,6 +453,7 @@ document.getElementById('importExcel')?.addEventListener('change', async (e) => 
           phone: phoneRaw,
           position_code: pos || 'employee',
           department: dep || null,
+          block: blk,
           role: role,
           gender: detectGender(fio)
         });
@@ -461,9 +521,29 @@ function showMessage(text, type = 'success') {
   }, 5000);
 }
 
+// --- Скрытие/отображение блока в зависимости от должности ---
+function updateBlockVisibility() {
+  const position = document.getElementById('position').value;
+  const blockLabel = document.getElementById('blockLabel') || document.querySelector('label[for="block"]');
+  const blockSelect = document.getElementById('block');
+  const noBlockPositions = ['sidelka', 'vanshiza'];
+
+  if (noBlockPositions.includes(position)) {
+    blockSelect.value = '';
+    if (blockLabel) blockLabel.style.opacity = '0.5';
+    if (blockSelect) blockSelect.disabled = true;
+  } else {
+    if (blockLabel) blockLabel.style.opacity = '1';
+    if (blockSelect) blockSelect.disabled = false;
+  }
+}
+
 // --- Инициализация ---
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('searchInput')?.addEventListener('input', applyFilters);
   document.getElementById('positionFilter')?.addEventListener('change', applyFilters);
+  document.getElementById('blockFilter')?.addEventListener('change', applyFilters);
+  document.getElementById('department')?.addEventListener('change', updateBlockOptions);
+  document.getElementById('position')?.addEventListener('change', updateBlockVisibility);
   loadEmployees();
 });

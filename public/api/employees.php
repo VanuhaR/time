@@ -70,6 +70,7 @@ if ($action === 'list') {
                 e.role,
                 e.gender,
                 e.department,
+                e.block,
                 e.position_code,
                 e.hire_date
             FROM employees e
@@ -87,6 +88,7 @@ if ($action === 'list') {
                 'role' => $emp['role'],
                 'gender' => $emp['gender'],
                 'department' => $emp['department'] ?? 'Не указан',
+                'block' => $emp['block'] ?? null,
                 'position_code' => $emp['position_code'] ?? 'unknown',
                 'position_title' => $positions[$emp['position_code']] ?? 'Неизвестно',
                 'hire_date' => $emp['hire_date'] ? date('Y-m-d', strtotime($emp['hire_date'])) : null
@@ -120,7 +122,7 @@ if ($action === 'get') {
 
     try {
         $stmt = $pdo->prepare("
-            SELECT id, full_name, phone, role, position_code, department, gender, hire_date
+            SELECT id, full_name, phone, role, position_code, department, block, gender, hire_date
             FROM employees WHERE id = ? LIMIT 1
         ");
         $stmt->execute([(int)$id]);
@@ -151,6 +153,7 @@ if ($action === 'get') {
             'position_code' => $emp['position_code'] ?? 'unknown',
             'position_title' => $posTitle,
             'department' => $emp['department'] ?? 'Не указан',
+            'block' => $emp['block'] ?? null,
             'gender' => $emp['gender'],
             'hire_date' => $emp['hire_date'] ? date('Y-m-d', strtotime($emp['hire_date'])) : null
         ];
@@ -176,10 +179,12 @@ if ($action === 'create') {
     $phone = preg_replace('/\D/', '', $input['phone'] ?? '');
     $positionCode = trim($input['position_code'] ?? '');
     $department = trim($input['department'] ?? '');
+    $block = $input['block'] ?? null;
     $gender = trim($input['gender'] ?? 'male');
     $hireDate = $input['hire_date'] ?? null;
     $password = $input['password'] ?? '123456';
 
+    // Валидация
     if (!$fullName) {
         http_response_code(400);
         echo json_encode(['error' => 'ФИО обязательно'], JSON_UNESCAPED_UNICODE);
@@ -191,6 +196,7 @@ if ($action === 'create') {
         exit;
     }
 
+    // Валидация должности
     try {
         $posStmt = $pdo->prepare("SELECT 1 FROM positions WHERE code = ?");
         $posStmt->execute([$positionCode]);
@@ -206,12 +212,40 @@ if ($action === 'create') {
         exit;
     }
 
+    // Валидация блока
+    $validBlocks = ['1', '1-2', '2', '2-3', '3'];
+    if ($block !== null && !in_array($block, $validBlocks)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Недопустимое значение блока'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // Вставка
     $stmt = $pdo->prepare("
-        INSERT INTO employees (full_name, phone, position_code, department, role, password_hash, hire_date, gender, created_at)
-        VALUES (?, ?, ?, ?, 'employee', ?, ?, ?, NOW())
+        INSERT INTO employees (
+            full_name,
+            phone,
+            position_code,
+            department,
+            block,
+            role,
+            password_hash,
+            hire_date,
+            gender,
+            created_at
+        ) VALUES (?, ?, ?, ?, ?, 'employee', ?, ?, ?, NOW())
     ");
     $passwordHash = password_hash($password, PASSWORD_DEFAULT);
-    $stmt->execute([$fullName, $phone, $positionCode, $department, $passwordHash, $hireDate, $gender]);
+    $stmt->execute([
+        $fullName,
+        $phone,
+        $positionCode,
+        $department,
+        $block,
+        $passwordHash,
+        $hireDate,
+        $gender
+    ]);
 
     $newId = $pdo->lastInsertId();
     error_log("✅ [EMPLOYEES_API] Сотрудник добавлен: $fullName (ID: $newId)");
@@ -238,10 +272,12 @@ if ($action === 'update') {
     $phone = preg_replace('/\D/', '', $input['phone'] ?? '');
     $positionCode = trim($input['position_code'] ?? '');
     $department = trim($input['department'] ?? '');
+    $block = $input['block'] ?? null;
     $gender = trim($input['gender'] ?? 'male');
     $hireDate = $input['hire_date'] ?? null;
     $password = $input['password'] ?? null;
 
+    // Валидация
     if (!$fullName) {
         http_response_code(400);
         echo json_encode(['error' => 'ФИО обязательно'], JSON_UNESCAPED_UNICODE);
@@ -253,6 +289,7 @@ if ($action === 'update') {
         exit;
     }
 
+    // Проверка должности
     try {
         $posStmt = $pdo->prepare("SELECT 1 FROM positions WHERE code = ?");
         $posStmt->execute([$positionCode]);
@@ -268,6 +305,15 @@ if ($action === 'update') {
         exit;
     }
 
+    // Валидация блока
+    $validBlocks = ['1', '1-2', '2', '2-3', '3'];
+    if ($block !== null && !in_array($block, $validBlocks)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Недопустимое значение блока'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // Формируем запрос
     $fields = [];
     $params = [];
 
@@ -281,6 +327,9 @@ if ($action === 'update') {
 
     $fields[] = "hire_date = ?";
     $params[] = $hireDate;
+
+    $fields[] = "block = ?";
+    $params[] = $block;
 
     if ($password) {
         $fields[] = "password_hash = ?";
